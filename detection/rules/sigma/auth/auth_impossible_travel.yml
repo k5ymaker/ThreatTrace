@@ -1,0 +1,26 @@
+title: Impossible Travel Authentication
+id: c9d0e1f2-a3b4-5678-cdef-789012345679
+status: stable
+description: Detects impossible travel scenarios where the same user account authenticates from two geographically distant countries within a 30 minute window, which is physically impossible to achieve without compromised credentials or a VPN
+references:
+    - https://attack.mitre.org/techniques/T1078/
+    - https://docs.microsoft.com/en-us/azure/active-directory/identity-protection/concept-identity-protection-risks
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1078
+    - attack.initial_access
+logsource:
+    category: authentication
+detection:
+    selection:
+        event_type: 'authentication_success'
+        result: 'success'
+    timeframe: 30m
+    condition: selection | count(geo_country) by username > 1
+falsepositives:
+    - Users accessing services through VPNs or anonymizing proxies
+    - Shared accounts accessed by team members in different countries
+    - Corporate VPN exit nodes in different countries
+    - Mobile users with split tunneling configurations
+level: critical

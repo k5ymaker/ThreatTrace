@@ -1,0 +1,25 @@
+title: Large Outbound Data Transfer
+id: e9f0a1b2-c3d4-5678-efab-789012345678
+status: stable
+description: Detects potential data exfiltration by identifying outbound network transfers exceeding 100MB to external destinations, which may indicate large-scale data theft
+references:
+    - https://attack.mitre.org/techniques/T1048/
+    - https://attack.mitre.org/techniques/T1041/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1048
+    - attack.exfiltration
+logsource:
+    category: firewall
+detection:
+    selection:
+        direction: 'outbound'
+        bytes_sent|gt: 104857600
+    condition: selection
+falsepositives:
+    - Legitimate large file transfers to cloud storage providers
+    - Software updates and patch distribution
+    - Backup jobs transferring data to off-site storage
+    - Video conference recording uploads
+level: high

@@ -1,0 +1,40 @@
+title: NTLM Self-Relay Local Privilege Escalation
+id: e7f6g5h4-5678-9012-efab-234567890123
+status: stable
+description: >
+  Detects NTLM relay where a process authenticates to a local listener
+  (127.0.0.1 / ::1) using NTLM, allowing privilege escalation via token capture.
+  Covers NTLM2SelfRelay and RogueWinRM techniques.
+references:
+  - https://github.com/sbousseaden/EVTX-ATTACK-SAMPLES
+author: ThreatTrace
+date: 2026/01/01
+tags:
+  - attack.privilege_escalation
+  - attack.lateral_movement
+  - attack.t1557.001
+logsource:
+  product: windows
+  service: security
+detection:
+  local_ntlm_logon:
+    EventID: 4624
+    AuthenticationPackageName: 'NTLM'
+    IpAddress:
+      - '127.0.0.1'
+      - '::1'
+      - '-'
+    LogonType:
+      - 3
+      - 9
+  process_creation:
+    EventID: 4688
+    NewProcessName|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+    SubjectUserName: 'SYSTEM'
+  condition: local_ntlm_logon and process_creation
+  timeframe: 30s
+falsepositives:
+  - Loopback authentication in SQL Server mirroring or cluster configurations
+level: critical

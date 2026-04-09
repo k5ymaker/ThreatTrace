@@ -1,0 +1,139 @@
+title: HTTP Brute Force — Multiple 401 Responses
+id: d2e3f4a5-b6c7-4d8e-9f0a-1b2c3d4e5f6a
+status: stable
+description: Detects HTTP brute force attacks via multiple 401 Unauthorized responses.
+tags:
+    - attack.credential_access
+    - attack.t1110
+logsource:
+    category: web
+detection:
+    selection:
+        status_code: 401
+    condition: selection
+falsepositives:
+    - Legitimate authentication failures
+level: medium
+---
+title: Web Shell Interaction Detected
+id: e3f4a5b6-c7d8-4e9f-0a1b-2c3d4e5f6a7b
+status: stable
+description: Detects HTTP requests to known web shell paths with command execution patterns.
+tags:
+    - attack.persistence
+    - attack.execution
+    - attack.t1505.003
+logsource:
+    category: web
+detection:
+    selection_urls:
+        url|contains:
+            - "c99.php"
+            - "r57.php"
+            - "b374k"
+            - "wso.php"
+            - "shell.php"
+            - "webshell"
+    selection_params:
+        url|contains:
+            - "cmd="
+            - "command="
+            - "exec="
+            - "system="
+            - "passthru="
+    condition: selection_urls or selection_params
+falsepositives:
+    - Security testing
+level: critical
+---
+title: SQL Injection Attempt — HTTP Access Log
+id: f4a5b6c7-d8e9-4f0a-1b2c-3d4e5f6a7b8c
+status: stable
+description: Detects SQL injection pattern attempts in web access logs.
+tags:
+    - attack.initial_access
+    - attack.t1190
+logsource:
+    category: web
+detection:
+    selection:
+        url|contains:
+            - "' OR "
+            - "UNION SELECT"
+            - "1=1--"
+            - "1' AND"
+            - "benchmark("
+            - "sleep(0x"
+            - "waitfor delay"
+    condition: selection
+falsepositives:
+    - Security scanner testing
+level: high
+---
+title: Directory Traversal Attack
+id: a5b6c7d8-e9f0-4a1b-2c3d-4e5f6a7b8c9d
+status: stable
+description: Detects path/directory traversal attempts in HTTP logs.
+tags:
+    - attack.discovery
+    - attack.t1083
+logsource:
+    category: web
+detection:
+    selection:
+        url|contains:
+            - "../"
+            - "..%2F"
+            - "%2e%2e%2f"
+            - "..%5C"
+            - "/etc/passwd"
+            - "/etc/shadow"
+            - "/proc/self"
+    condition: selection
+falsepositives:
+    - Security scanning
+level: high
+---
+title: Vulnerability Scanner User Agent
+id: b6c7d8e9-f0a1-4b2c-3d4e-5f6a7b8c9d0e
+status: stable
+description: Detects requests from known vulnerability scanning tools.
+tags:
+    - attack.discovery
+    - attack.t1595
+logsource:
+    category: web
+detection:
+    selection:
+        user_agent|contains:
+            - "sqlmap"
+            - "nikto"
+            - "masscan"
+            - "nessus"
+            - "openvas"
+            - "w3af"
+            - "acunetix"
+            - "dirbuster"
+            - "gobuster"
+            - "nuclei"
+    condition: selection
+falsepositives:
+    - Authorized security testing
+level: medium
+---
+title: Suspicious HTTP Response Code Pattern (4xx Flood)
+id: c7d8e9f0-a1b2-4c3d-4e5f-6a7b8c9d0e1f
+status: stable
+description: Detects 403/404 flooding that may indicate directory enumeration/bruteforce.
+tags:
+    - attack.discovery
+    - attack.t1595.003
+logsource:
+    category: web
+detection:
+    selection:
+        status_code: 404
+    condition: selection
+falsepositives:
+    - Broken links, crawlers
+level: info

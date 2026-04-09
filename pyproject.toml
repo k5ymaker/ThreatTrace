@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "threattrace"
+version = "1.0.0"
+description = "Terminal-based cybersecurity log analysis tool"
+requires-python = ">=3.9"
+dependencies = [
+    "rich>=13.0",
+    "click>=8.0",
+    "yara-python>=4.3",
+    "pyyaml>=6.0",
+    "python-evtx>=0.7.4",
+    "jinja2>=3.1",
+]
+
+[project.scripts]
+threattrace = "threattrace.cli:main"
+threattrace-shell = "threattrace.shell:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["threattrace*"]

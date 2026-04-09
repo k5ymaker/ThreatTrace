@@ -1,0 +1,298 @@
+# ThreatTrace Configuration
+# Version 2.0 | TLP:AMBER | NIST SP 800-61 Aligned
+
+# ---------------------------------------------------------------------------
+# General
+# ---------------------------------------------------------------------------
+general:
+  version: "2.0"
+  tool_name: "ThreatTrace"
+  default_analyst: "Unknown Analyst"
+  tlp: "AMBER"                         # WHITE | GREEN | AMBER | RED
+  timezone: "UTC"
+  max_events_in_memory: 500000         # abort if single file exceeds this
+  log_level: "INFO"                    # DEBUG | INFO | WARNING | ERROR
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+output:
+  default_dir: "./threattrace_reports"
+  report_formats:
+    - html
+    - json
+  html_template: "templates/report.html.j2"
+  json_pretty: true
+  include_raw_events: false            # embed raw log lines in JSON output
+  max_events_in_report: 10000         # cap events written to report
+
+# ---------------------------------------------------------------------------
+# Severity thresholds  (score 0–100)
+# ---------------------------------------------------------------------------
+severity:
+  critical_threshold: 80
+  high_threshold: 60
+  medium_threshold: 40
+  low_threshold: 20
+  info_threshold: 0
+
+  labels:
+    critical: "CRITICAL"
+    high: "HIGH"
+    medium: "MEDIUM"
+    low: "LOW"
+    info: "INFO"
+
+  colors:                              # Rich markup colors for terminal
+    critical: "bold red"
+    high: "red"
+    medium: "yellow"
+    low: "cyan"
+    info: "white"
+
+# ---------------------------------------------------------------------------
+# TLP Classification
+# ---------------------------------------------------------------------------
+tlp:
+  WHITE:
+    description: "Unrestricted — may be shared publicly"
+    color: "white"
+  GREEN:
+    description: "Community — share within community only"
+    color: "green"
+  AMBER:
+    description: "Limited — share on need-to-know basis"
+    color: "yellow"
+  RED:
+    description: "Strict — do not share outside recipients"
+    color: "red"
+
+# ---------------------------------------------------------------------------
+# Detection engine
+# ---------------------------------------------------------------------------
+detection:
+  yara:
+    enabled: true
+    rules_dir: "rules/yara"
+    timeout_seconds: 60
+    max_strings_per_rule: 10000
+  sigma:
+    enabled: true
+    rules_dir: "rules/sigma"
+    backend: "python"
+  correlation:
+    enabled: true
+    time_window_seconds: 300          # 5-minute correlation window
+    min_events_for_pattern: 3
+  brute_force:
+    failed_login_threshold: 5        # failures within window → alert
+    window_seconds: 60
+  port_scan:
+    unique_ports_threshold: 20       # unique dest ports from one IP → alert
+    window_seconds: 60
+  beaconing:
+    min_requests: 10
+    stddev_threshold: 2.0            # low stddev → regular beaconing
+  data_exfil:
+    bytes_threshold: 104857600       # 100 MB outbound → alert
+  dga:
+    entropy_threshold: 3.8           # high entropy subdomain → DGA suspect
+    min_domain_length: 12
+
+# ---------------------------------------------------------------------------
+# High-risk countries (ISO 3166-1 alpha-2)
+# ---------------------------------------------------------------------------
+high_risk_countries:
+  - RU   # Russia
+  - CN   # China
+  - KP   # North Korea
+  - IR   # Iran
+  - NG   # Nigeria
+  - UA   # Ukraine (conflict-zone)
+  - BY   # Belarus
+  - SY   # Syria
+  - CU   # Cuba
+  - VE   # Venezuela
+  - MM   # Myanmar
+  - AF   # Afghanistan
+  - IQ   # Iraq
+  - LY   # Libya
+  - SD   # Sudan
+  - SO   # Somalia
+  - YE   # Yemen
+  - ZW   # Zimbabwe
+
+# ---------------------------------------------------------------------------
+# Scanner / attack-tool User-Agent patterns (regex)
+# ---------------------------------------------------------------------------
+scanner_user_agents:
+  - "sqlmap"
+  - "nikto"
+  - "nmap"
+  - "masscan"
+  - "burpsuite"
+  - "BurpSuite"
+  - "ZAP"
+  - "OWASP"
+  - "dirbuster"
+  - "DirBuster"
+  - "gobuster"
+  - "wfuzz"
+  - "hydra"
+  - "medusa"
+  - "acunetix"
+  - "nessus"
+  - "openvas"
+  - "w3af"
+  - "havij"
+  - "pangolin"
+  - "jbrofuzz"
+  - "skipfish"
+  - "golismero"
+  - "nuclei"
+  - "ffuf"
+  - "feroxbuster"
+  - "metasploit"
+  - "msfconsole"
+  - "python-requests/2\\."
+  - "Go-http-client"
+  - "curl/[0-9]"
+  - "libwww-perl"
+  - "WinHttp"
+  - "zgrab"
+  - "shodan"
+  - "censys"
+  - "binaryedge"
+  - "internet-measurement"
+  - "masshttp"
+
+# ---------------------------------------------------------------------------
+# Known malicious / suspicious ports
+# ---------------------------------------------------------------------------
+suspicious_ports:
+  high_risk:
+    - 4444    # Metasploit default
+    - 4445
+    - 5555    # Android ADB / RAT
+    - 1337    # Common RAT
+    - 31337   # Back Orifice
+    - 12345   # NetBus
+    - 27374   # SubSeven
+    - 6666    # IRC / botnet
+    - 6667    # IRC
+    - 6697    # IRC TLS
+    - 8080    # Alt-HTTP often abused
+    - 9001    # Tor
+    - 9050    # Tor SOCKS
+    - 9150    # Tor Browser
+    - 3389    # RDP exposed
+  watch:
+    - 21      # FTP
+    - 23      # Telnet
+    - 25      # SMTP (outbound from non-mail host)
+    - 53      # DNS (outbound large transfers)
+    - 445     # SMB
+    - 1433    # MSSQL
+    - 1521    # Oracle
+    - 3306    # MySQL
+    - 5432    # PostgreSQL
+    - 27017   # MongoDB
+    - 6379    # Redis
+    - 9200    # Elasticsearch
+    - 11211   # Memcached
+
+# ---------------------------------------------------------------------------
+# Web attack patterns (regex matched against URI / request body)
+# ---------------------------------------------------------------------------
+web_attack_patterns:
+  sqli:
+    - "(?i)(union.*select|select.*from|insert.*into|drop.*table|or 1=1|' or '|;--)"
+    - "(?i)(xp_cmdshell|exec\\(|execute\\(|cast\\(|convert\\()"
+  xss:
+    - "(?i)(<script|javascript:|onerror=|onload=|<img[^>]+src=|alert\\()"
+  path_traversal:
+    - "(\\.\\./|\\.\\.\\\\/|%2e%2e%2f|%252e%252e|/etc/passwd|/etc/shadow|/proc/self)"
+  rce:
+    - "(?i)(\\$\\{jndi:|%24\\{jndi:|log4j|java\\.lang\\.runtime)"
+  xxe:
+    - "(?i)(<!entity|SYSTEM\\s+['\"]file://|DOCTYPE[^>]+SYSTEM)"
+  ssrf:
+    - "(?i)(169\\.254\\.169\\.254|metadata\\.google\\.internal|127\\.0\\.0\\.1|0\\.0\\.0\\.0)"
+
+# ---------------------------------------------------------------------------
+# Log type → parser mapping
+# ---------------------------------------------------------------------------
+log_type_parsers:
+  apache:         "parsers.web.apache.ApacheParser"
+  nginx:          "parsers.web.nginx.NginxParser"
+  iis:            "parsers.web.iis.IISParser"
+  sysmon:         "parsers.endpoint.sysmon.SysmonParser"
+  windows_evtx:   "parsers.windows.evtx.EvtxParser"
+  syslog:         "parsers.linux.syslog.SyslogParser"
+  auth_log:       "parsers.auth.auth_log.AuthLogParser"
+  auditd:         "parsers.linux.auditd.AuditdParser"
+  cisco_asa:      "parsers.network.cisco_asa.CiscoASAParser"
+  fortinet:       "parsers.network.fortinet.FortinetParser"
+  pfsense:        "parsers.network.pfsense.PfSenseParser"
+  palo_alto:      "parsers.network.palo_alto.PaloAltoParser"
+  dns_bind:       "parsers.network.dns_bind.DNSBindParser"
+  cloudtrail:     "parsers.cloud.cloudtrail.CloudTrailParser"
+  azure_activity: "parsers.cloud.azure.AzureActivityParser"
+  gcp_audit:      "parsers.cloud.gcp.GCPAuditParser"
+  okta:           "parsers.auth.okta.OktaParser"
+  squid:          "parsers.network.squid.SquidParser"
+  postfix:        "parsers.linux.postfix.PostfixParser"
+  ssh:            "parsers.auth.ssh.SSHParser"
+  docker:         "parsers.endpoint.docker.DockerParser"
+  k8s:            "parsers.endpoint.k8s.K8sParser"
+  mssql:          "parsers.generic.generic.GenericParser"
+  mysql:          "parsers.generic.generic.GenericParser"
+
+# ---------------------------------------------------------------------------
+# Search engine
+# ---------------------------------------------------------------------------
+search:
+  index_dir: "./search/search_index"
+  drain_threshold: 0.4
+  drain_depth: 4
+  templates_path: "./data/event_templates.json"
+  max_results: 500
+  context_lines: 2
+  saved_searches:
+    brute_force_hunt: "rule_name:brute_force AND severity:HIGH"
+    sqli_hunt: "uri:UNION AND uri:SELECT"
+    c2_hunt: "rule_name:beaconing OR rule_name:c2"
+    priv_esc_hunt: "action:sudo AND status:failure"
+    lateral_movement: "mitre_tactic:lateral_movement"
+
+# ---------------------------------------------------------------------------
+# Normalised event field schema (for reference / documentation)
+# ---------------------------------------------------------------------------
+normalized_event_schema:
+  required:
+    - timestamp         # ISO-8601 string
+    - log_type          # string identifier
+    - raw               # original log line
+  optional:
+    - src_ip
+    - dst_ip
+    - src_port
+    - dst_port
+    - username
+    - hostname
+    - process
+    - pid
+    - action
+    - status
+    - method
+    - uri
+    - status_code
+    - bytes_sent
+    - bytes_recv
+    - user_agent
+    - protocol
+    - severity
+    - event_id
+    - message
+    - country
+    - tags

@@ -1,0 +1,37 @@
+title: Remote File Inclusion (RFI) Attempt
+id: d4e5f6a7-b8c9-0123-defa-234567890123
+status: stable
+description: Detects Remote File Inclusion attempts where HTTP or HTTPS URLs pointing to external domains are passed as query parameters, potentially loading malicious remote scripts
+references:
+    - https://attack.mitre.org/techniques/T1190/
+    - https://owasp.org/www-project-web-security-testing-guide/v42/4-Web_Application_Security_Testing/07-Input_Validation_Testing/11.2-Testing_for_Remote_File_Inclusion
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1190
+    - attack.initial_access
+logsource:
+    category: webserver
+    product: apache
+detection:
+    selection_params:
+        url|contains:
+            - '=http://'
+            - '=https://'
+            - '=ftp://'
+    selection_traversal:
+        url|contains:
+            - '?file=http'
+            - '?page=http'
+            - '?path=http'
+            - '?url=http'
+            - '?include=http'
+            - '?require=http'
+            - '?doc=http'
+            - '?load=http'
+    condition: selection_params or selection_traversal
+falsepositives:
+    - Legitimate applications that accept URL parameters for redirects
+    - OAuth callback parameters
+    - Security testing
+level: high

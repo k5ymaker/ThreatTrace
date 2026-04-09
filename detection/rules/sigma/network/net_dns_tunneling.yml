@@ -1,0 +1,28 @@
+title: DNS Tunneling Detected
+id: d8e9f0a1-b2c3-4567-defa-678901234567
+status: stable
+description: Detects DNS tunneling activity used for covert command-and-control or data exfiltration by identifying unusually long DNS query names, TXT record queries, or high query volume from a single client
+references:
+    - https://attack.mitre.org/techniques/T1071/004/
+    - https://www.sans.org/reading-room/whitepapers/dns/detecting-dns-tunneling-34152
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1071.004
+    - attack.command_and_control
+logsource:
+    category: dns
+detection:
+    selection_long_query:
+        query_length|gt: 50
+    selection_txt_query:
+        query_type: 'TXT'
+    selection_high_volume:
+        timeframe: 1m
+    condition: selection_long_query or selection_txt_query or (selection_high_volume | count() by client_ip > 100)
+falsepositives:
+    - Legitimate applications using long DNS names for service discovery
+    - CDN and cloud provider DNS queries with encoded parameters
+    - Email verification using TXT records
+    - DKIM and SPF record lookups
+level: high

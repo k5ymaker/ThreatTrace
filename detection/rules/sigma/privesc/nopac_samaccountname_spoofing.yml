@@ -1,0 +1,36 @@
+title: noPac SAMAccountName Spoofing (CVE-2021-42278/42287)
+id: d6e5f4g3-4567-8901-defa-123456789012
+status: stable
+description: >
+  Detects the noPac attack chain: a machine account is renamed to match a DC
+  name, a TGT is requested, then account is renamed back. Results in DC-level
+  Kerberos ticket issuance.
+references:
+  - https://github.com/sbousseaden/EVTX-ATTACK-SAMPLES
+author: ThreatTrace
+date: 2026/01/01
+tags:
+  - attack.privilege_escalation
+  - attack.t1558
+  - attack.credential_access
+logsource:
+  product: windows
+  service: security
+detection:
+  account_rename:
+    EventID: 4781
+    OldTargetUserName|endswith: '$'
+    NewTargetUserName|endswith:
+      - 'DC'
+      - 'DC01'
+      - 'DC1'
+  tgt_request:
+    EventID: 4768
+    AccountName|not|endswith: '$'
+  service_ticket:
+    EventID: 4769
+    ServiceName: 'krbtgt'
+  condition: account_rename and (tgt_request or service_ticket)
+falsepositives:
+  - Legitimate DC rename operations (extremely rare, should be change-controlled)
+level: critical

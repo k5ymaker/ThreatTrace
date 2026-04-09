@@ -1,0 +1,28 @@
+title: Pass-the-Hash Attack Detected
+id: b8c9d0e1-f2a3-4567-bcde-678901234567
+status: stable
+description: Detects Pass-the-Hash lateral movement by identifying NTLM network logons (LogonType 3) where the source workstation differs from the target computer, indicating potential credential reuse without plaintext passwords
+references:
+    - https://attack.mitre.org/techniques/T1550/002/
+    - https://www.microsoft.com/security/blog/2014/08/06/protecting-privileged-domain-accounts-network-authentication-is-not-necessary/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1550.002
+    - attack.lateral_movement
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4624
+        LogonType: 3
+        AuthenticationPackageName: 'NTLM'
+    filter_machine:
+        WorkstationName|endswith: '$'
+    condition: selection and not filter_machine
+falsepositives:
+    - Legitimate NTLM network logons in environments that rely on NTLM authentication
+    - File share access using NTLM
+    - Printer connections
+level: high

@@ -1,0 +1,32 @@
+title: UAC Bypass Attempt
+id: c5d6e7f8-a9b0-1234-cdef-345678901234
+status: stable
+description: Detects User Account Control (UAC) bypass attempts by identifying execution of known UAC bypass binaries commonly abused to elevate privileges without triggering a UAC prompt
+references:
+    - https://attack.mitre.org/techniques/T1548/002/
+    - https://github.com/hfiref0x/UACME
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1548.002
+    - attack.privilege_escalation
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4688
+        CommandLine|contains:
+            - 'fodhelper'
+            - 'eventvwr'
+            - 'sdclt'
+            - 'slui'
+            - 'ComputerDefaults'
+            - 'cmstp'
+            - 'DiskCleanup'
+            - 'SilentCleanup'
+    condition: selection
+falsepositives:
+    - Legitimate administrative use of these binaries without bypass context
+    - IT automation scripts invoking these utilities
+level: high

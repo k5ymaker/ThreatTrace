@@ -1,0 +1,30 @@
+title: AWS S3 Data Exfiltration
+id: d4e5f6a7-b8c9-0123-defa-234567890124
+status: stable
+description: Detects potential AWS S3 data exfiltration by identifying GetObject API calls originating from external IP addresses (non-RFC1918), which may indicate data theft from S3 buckets
+references:
+    - https://attack.mitre.org/techniques/T1530/
+    - https://docs.aws.amazon.com/AmazonS3/latest/userguide/cloudtrail-logging.html
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1530
+    - attack.exfiltration
+logsource:
+    product: aws
+    service: cloudtrail
+detection:
+    selection:
+        eventName: 'GetObject'
+    filter_internal:
+        sourceIPAddress|startswith:
+            - '10.'
+            - '172.'
+            - '192.168.'
+    condition: selection and not filter_internal
+falsepositives:
+    - Legitimate external users with proper S3 permissions
+    - Public S3 bucket access by customers
+    - CDN pulls from S3 origins
+    - Cross-account access from trusted partner accounts
+level: high

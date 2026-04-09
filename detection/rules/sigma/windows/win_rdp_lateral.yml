@@ -1,0 +1,44 @@
+title: RDP Lateral Movement
+id: d6e7f8a9-b0c1-2345-defa-456789012345
+status: stable
+description: Detects Remote Desktop Protocol (RDP) based lateral movement by identifying interactive remote logons (LogonType 10) originating from internal private IP address ranges
+references:
+    - https://attack.mitre.org/techniques/T1021/001/
+    - https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4624
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1021.001
+    - attack.lateral_movement
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4624
+        LogonType: 10
+        IpAddress|startswith:
+            - '10.'
+            - '192.168.'
+            - '172.16.'
+            - '172.17.'
+            - '172.18.'
+            - '172.19.'
+            - '172.20.'
+            - '172.21.'
+            - '172.22.'
+            - '172.23.'
+            - '172.24.'
+            - '172.25.'
+            - '172.26.'
+            - '172.27.'
+            - '172.28.'
+            - '172.29.'
+            - '172.30.'
+            - '172.31.'
+    condition: selection
+falsepositives:
+    - Legitimate remote administration via RDP from internal workstations
+    - Help desk remote support activities
+    - System administrators performing maintenance
+level: medium

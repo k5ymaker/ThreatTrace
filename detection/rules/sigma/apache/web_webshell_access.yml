@@ -1,0 +1,37 @@
+title: Web Shell Access Detected
+id: e5f6a7b8-c9d0-1234-efab-345678901234
+status: stable
+description: Detects potential web shell access characterized by POST requests to server-side script files with common web shell command parameters
+references:
+    - https://attack.mitre.org/techniques/T1505/003/
+    - https://www.cisa.gov/sites/default/files/publications/CISA_MS-ISAC_AA21-131A.pdf
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1505.003
+    - attack.persistence
+logsource:
+    category: webserver
+    product: apache
+detection:
+    selection_method:
+        method: POST
+    selection_extensions:
+        url|endswith:
+            - '.php'
+            - '.asp'
+            - '.aspx'
+            - '.jsp'
+    selection_params:
+        url|contains:
+            - 'cmd='
+            - 'exec='
+            - 'command='
+            - 'execute='
+            - 'shell='
+            - 'passthru='
+    condition: selection_method and selection_extensions and selection_params
+falsepositives:
+    - Legitimate web applications with command-like parameter names
+    - CMS plugins with exec or command parameters
+level: critical

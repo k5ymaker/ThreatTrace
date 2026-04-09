@@ -1,0 +1,1056 @@
+================================================================================
+                        THREATTRACE PROJECT DOCUMENTATION
+                        Comprehensive Technical Reference
+================================================================================
+
+Version: 2.0
+Date: March 2026
+TLP: AMBER
+
+================================================================================
+                           TABLE OF CONTENTS
+================================================================================
+
+1. EXECUTIVE OVERVIEW
+2. SYSTEM DESIGN ARCHITECTURE
+3. TOOLS AND TECHNOLOGIES
+4. PROJECT STRUCTURE
+5. COMPLETE WORKFLOW
+6. MODULE DETAILS
+   6.1 Core Modules
+   6.2 Parsers
+   6.3 Detection Engine
+   6.4 Analytics Modules
+   6.5 Report Builder
+7. CONFIGURATION
+8. USAGE EXAMPLES
+9. DETECTION RULES
+10. OUTPUT FORMATS
+
+================================================================================
+                        1. EXECUTIVE OVERVIEW
+================================================================================
+
+ThreatTrace is a comprehensive cybersecurity log analysis and threat detection
+platform designed to analyze various log formats from multiple sources including:
+
+- Web servers (Apache, Nginx, IIS)
+- Windows Event Logs (EVTX)
+- Linux system logs (Syslog, Auth Log, Auditd)
+- Network security devices (Cisco ASA, Fortinet, Palo Alto, pfSense)
+- Cloud platforms (AWS CloudTrail, Azure Activity, GCP Audit)
+- Proxy logs (Squid)
+- Email servers (Postfix)
+- Containers (Docker, Kubernetes)
+
+The platform provides:
+- Automatic log format detection
+- Multi-stage detection using YARA and Sigma rules
+- Behavioral analytics (baseline profiling, beaconing detection, frequency
+  analysis, top-N reporting, timeline correlation)
+- Comprehensive HTML and JSON reports aligned with NIST SP 800-61
+
+================================================================================
+                     2. SYSTEM DESIGN ARCHITECTURE
+================================================================================
+
+ThreatTrace follows a layered pipeline architecture:
+
+    +------------------+
+    |   Main Entry     |  (main.py - CLI or Interactive)
+    +--------+---------+
+             |
+    +--------v---------+
+    |  File Handler    |  (Load files, decompress .gz, detect .evtx)
+    +--------+---------+
+             |
+    +--------v---------+
+    | Auto-Detector    |  (Identify log format via signatures)
+    +--------+---------+
+             |
+    +--------v---------+
+    | Parser Router    |  (Route to appropriate parser)
+    +--------+---------+
+             |
+    +--------v---------+
+    |   Parsers        |  (Parse 30+ log formats)
+    +--------+---------+
+             |
+    +--------v---------+
+    | Detection Engine |  (YARA, Sigma, Correlation)
+    +--------+---------+
+             |
+    +--------v---------+
+    | Analytics        |  (Baseline, Frequency, Beaconing, TopN, Timeline)
+    +--------+---------+
+             |
+    +--------v---------+
+    |  Report Builder  |  (HTML, JSON output)
+    +--------+---------+
+
+DESIGN PRINCIPLES:
+
+1. Modularity: Each component is independent and can be replaced
+2. Extensibility: New parsers and rules can be added easily
+3. Resilience: Fallback parsers ensure the pipeline never crashes
+4. Performance: Lazy imports and parallel processing where applicable
+5. Security: TLP classification and NIST alignment
+
+================================================================================
+                     3. TOOLS AND TECHNOLOGIES
+================================================================================
+
+PROGRAMMING LANGUAGE:
+- Python 3.9+
+
+CORE DEPENDENCIES:
+- click: CLI framework
+- rich: Terminal UI and formatted output
+- pyyaml: Configuration management
+- python-dateutil: Date/time parsing
+- numpy: Numerical computations (optional, for analytics)
+
+DETECTION ENGINES:
+- yara-python: YARA rule matching
+- Sigma: YAML-based detection rules
+
+OPTIONAL DEPENDENCIES:
+- matplotlib: Report charts
+- pandas: Data analysis
+- evtx: Windows EVTX parsing
+
+LOG SOURCES SUPPORTED:
+
+Web Logs:
+- Apache Common/Combined Log Format
+- Nginx access logs
+- IIS W3C Extended Log Format
+
+Windows:
+- Windows Event Log (EVTX)
+- Sysmon XML
+
+Linux/Unix:
+- Syslog (RFC3164, RFC5424)
+- Auth.log
+- Auditd
+- Postfix
+
+Network Security:
+- Cisco ASA
+- Fortinet FortiGate
+- Palo Alto Networks
+- pfSense
+- Suricata EVE JSON
+- Zeek (Bro) TSV
+
+Cloud:
+- AWS CloudTrail
+- Azure Activity Log
+- GCP Audit Logs
+
+Other:
+- Squid Proxy
+- Docker/Kubernetes
+- Okta
+- DNS BIND
+
+================================================================================
+                     4. PROJECT STRUCTURE
+================================================================================
+
+ThreatTrace/
+├── main.py                     # Entry point (CLI + interactive menu)
+├── config.yaml                  # Configuration file
+├── core/
+│   ├── __init__.py
+│   ├── file_handler.py         # File loading and preprocessing
+│   ├── auto_detector.py       # Log type auto-detection
+│   ├── parser_router.py       # Parser routing logic
+│   ├── report_builder.py      # HTML/JSON report generation
+│   ├── menu.py                # Interactive menu system
+│   └── models.py              # Data models (LogRecord, Alert, etc.)
+├── parsers/
+│   ├── __init__.py
+│   ├── apache_parser.py       # Apache log parsing
+│   ├── nginx_parser.py        # Nginx log parsing
+│   ├── iis_parser.py          # IIS log parsing
+│   ├── sysmon_parser.py       # Sysmon XML parsing
+│   ├── windows_evtx_parser.py # Windows EVTX parsing
+│   ├── linux_syslog_parser.py # Syslog parsing
+│   ├── linux_auth_parser.py  # Auth.log parsing
+│   ├── linux_audit_parser.py  # Auditd parsing
+│   ├── aws_cloudtrail_parser.py
+│   ├── azure_activity_parser.py
+│   ├── gcp_audit_parser.py
+│   ├── cisco_asa_parser.py
+│   ├── fortinet_parser.py
+│   ├── palo_alto_parser.py
+│   ├── pfsense_parser.py
+│   ├── squid_proxy_parser.py
+│   ├── dns_parser.py
+│   ├── ssh_parser.py
+│   ├── vpn_parser.py
+│   ├── email_parser.py
+│   ├── docker_parser.py
+│   ├── k8s_parser.py
+│   ├── mysql_parser.py
+│   ├── mssql_parser.py
+│   ├── ad_parser.py
+│   └── okta_parser.py
+├── detection/
+│   ├── __init__.py
+│   ├── engine.py              # Detection orchestrator
+│   ├── yara_scanner.py        # YARA rule engine
+│   ├── sigma_scanner.py       # Sigma rule engine
+│   ├── correlator.py          # Event correlation
+│   ├── event_matrix.py        # Event matrix building
+│   └── rules/
+│       ├── yara/
+│       │   ├── auth/          # Authentication rules
+│       │   ├── cloud/         # Cloud platform rules
+│       │   ├── network/       # Network detection rules
+│       │   ├── linux/         # Linux threat rules
+│       │   ├── windows/       # Windows threat rules
+│       │   └── apache/        # Web attack rules
+│       └── sigma/
+│           ├── auth/          # Sigma auth rules
+│           ├── cloud/         # Sigma cloud rules
+│           ├── network/      # Sigma network rules
+│           ├── linux/        # Sigma Linux rules
+│           ├── windows/      # Sigma Windows rules
+│           └── apache/       # Sigma web rules
+├── analytics/
+│   ├── __init__.py
+│   ├── orchestrator.py       # Analytics pipeline
+│   ├── baseline.py           # Baseline profiling
+│   ├── frequency.py          # Frequency analysis
+│   ├── beaconing.py          # C2 beaconing detection
+│   ├── topn.py                # Top-N reporting
+│   ├── timeline.py           # Timeline correlation
+│   └── metrics.py            # Metrics utilities
+├── reports/                   # Generated reports
+├── docs/                      # Documentation
+└── scripts/                  # Utility scripts
+
+================================================================================
+                     5. COMPLETE WORKFLOW
+================================================================================
+
+The ThreatTrace analysis pipeline follows these stages:
+
+STAGE 1: FILE INTAKE
+---------------------
+- Accept file path or directory via CLI or interactive menu
+- Support for single files, multiple files, or recursive directory scan
+- Automatic handling of:
+  * Plain text files (.log, .txt)
+  * Compressed files (.gz) - auto-decompress
+  * Windows Event Logs (.evtx) - binary format detection
+
+STAGE 2: LOG TYPE DETECTION
+----------------------------
+Multi-phase detection algorithm:
+
+Phase 1 - Extension/Magic Bytes:
+  - .evtx files → windows_evtx (immediate)
+  - Magic bytes detection
+
+Phase 2 - Signature Matching:
+  - 90+ weighted regex/keyword/JSON key patterns
+  - Patterns for Apache, Nginx, IIS, Sysmon, Syslog, Auth Log,
+    Cisco ASA, Fortinet, CloudTrail, Azure, GCP, Okta, etc.
+
+Phase 3 - Structural Analysis:
+  - JSON-lines, JSON array, XML, CEF, LEEF
+  - Syslog RFC3164/RFC5424
+  - Apache CLF, W3C Extended, Key-Value, CSV
+  - Zeek TSV
+
+Phase 4 - Semantic Analysis:
+  - Security keyword domains
+  - Used when confidence < 50%
+
+Confidence Tiers:
+  - CONFIRMED: ≥ 80%
+  - LIKELY: 50-79%
+  - POSSIBLE: 20-49%
+  - FALLBACK: < 20%
+
+STAGE 3: PARSING
+-----------------
+- Router maps log type to appropriate parser
+- 30+ specialized parsers for different formats
+- Each parser normalizes data to LogRecord format:
+  * timestamp, source_ip, dest_ip, username
+  * action, status_code, bytes_transferred
+  * uri, user_agent, hostname, process_name
+  * command_line, event_id, extra fields
+
+STAGE 4: DETECTION
+------------------
+Three detection mechanisms run in parallel:
+
+A. YARA Scanner:
+   - Pattern matching on raw log lines
+   - Rules for: malware strings, attack patterns, suspicious commands
+   - Categories: auth, cloud, network, linux, windows, apache
+
+B. Sigma Scanner:
+   - YAML-based detection rules
+   - Backend: Python-based rule processing
+   - Categories aligned with YARA
+
+C. Correlation Engine:
+   - Time-window based correlation (5-minute window)
+   - Pattern detection across multiple events
+   - Brute force, port scan, beaconing, data exfil detection
+
+STAGE 5: ANALYTICS
+-------------------
+Five analytics modules provide behavioral analysis:
+
+A. Baseline Profiler:
+   - Learns normal behavior from 70% of data
+   - Tests remaining 30% for deviations
+   - Dimensions: bytes, status codes, request rates, failure rates
+
+B. Frequency Analyzer:
+   - Statistical frequency analysis per field
+   - Z-score based outlier detection
+   - High/low frequency anomaly identification
+
+C. Beaconing Detector:
+   - C2 callback pattern detection
+   - Three algorithms:
+     * Jitter CV (Coefficient of Variation)
+     * Autocorrelation
+     * FFT periodicity
+   - Requires ≥2 methods to trigger
+
+D. Top-N Reporter:
+   - Top IPs, URLs, users, user agents
+   - Peak time window detection
+   - Cumulative percentage analysis
+
+E. Timeline Builder:
+   - Multi-stage attack chain correlation
+   - Kill chain completeness scoring
+   - Cross-log-source correlation
+
+STAGE 6: REPORTING
+------------------
+Generate NIST SP 800-61 aligned reports:
+
+A. HTML Report:
+   - Professional dark-themed UI
+   - Interactive tables and charts
+   - Sections: Executive Summary, Source Intel, User Analysis,
+     Web/HTTP Analysis, Network Analysis, Timeline, Findings,
+     NIST Phases, Technical Appendix
+
+B. JSON Report:
+   - Machine-readable format
+   - Full event data
+   - Finding details with MITRE ATT&CK mapping
+
+Report includes:
+- Overall risk rating (CRITICAL/HIGH/MEDIUM/LOW/INFO)
+- TLP classification
+- Analyst information
+- Timestamp
+- Charts: severity donut, timeline, top IPs, user agents
+
+================================================================================
+                     6. MODULE DETAILS
+================================================================================
+
+6.1 CORE MODULES
+-----------------
+
+FILE_HANDLER (core/file_handler.py)
+Purpose: File discovery and intake
+Functions:
+- load_files(path, recursive): Main entry point
+- _detect_evtx(path): Detect Windows EVTX via magic bytes
+- _decompress_gz(gz_path): Decompress .gz files to temp
+- _process_single_file(path): Handle single file processing
+
+Supported extensions: .log, .json, .xml, .evtx, .gz, .txt, .csv
+
+
+AUTO_DETECTOR (core/auto_detector.py)
+Purpose: Automatic log format identification
+Key Components:
+- _SIGNATURES: 90+ weighted patterns
+- _RULESET_MAP: Maps log type to detection rules
+- _SEMANTIC_GROUPS: Security keyword domains
+- _classify_structure(): Format classification
+- detect_deep(file_path): Main detection function
+
+Detection phases:
+1. Extension/magic bytes
+2. Signature matching
+3. Structural analysis
+4. Semantic analysis
+
+
+PARSER_ROUTER (core/parser_router.py)
+Purpose: Route logs to appropriate parser
+- _PARSER_MAP: Maps 30+ log types to parser classes
+- get_parser(log_type): Returns parser instance
+- parse_file(file_descriptor, log_type): Parse single file
+- parse_files(file_descriptors, log_type): Parse multiple files
+
+Normalization ensures consistent output format regardless of
+input log type.
+
+
+MODELS (core/models.py)
+Purpose: Define core data structures
+
+LogRecord:
+- raw_line: Original log line
+- log_type: Identified log format
+- timestamp: Parsed timestamp
+- source_ip, dest_ip: IP addresses
+- source_port, dest_port: Port numbers
+- username: Authenticated user
+- action: Event action
+- status_code: HTTP status / event status
+- bytes_transferred: Data volume
+- uri: Requested URL
+- user_agent: Client identifier
+- hostname: Source hostname
+- process_name: Process name
+- command_line: Executed command
+- event_id: Windows Event ID
+- extra: Additional fields
+
+Alert:
+- rule_name, rule_type, severity, confidence
+- description, mitre_tactic, mitre_technique
+- matched_line, line_number, timestamp
+- iocs, recommended_action, log_type
+
+StatResult:
+- module (baseline/frequency/beaconing/topn/timeline)
+- log_type, title, severity, description
+- data (module-specific output)
+- anomalies, generated_at
+
+
+REPORT_BUILDER (core/report_builder.py)
+Purpose: Generate comprehensive reports
+Output Formats:
+- HTML with charts (matplotlib)
+- JSON with full data
+
+Report Sections:
+1. Cover page with metadata
+2. Table of Contents
+3. Executive Summary
+4. Source Intelligence (IPs, User Agents)
+5. User & Authentication Analysis
+6. Web & HTTP Analysis
+7. Network & Protocol Analysis
+8. Event & Temporal Analysis
+9. Detection Findings
+10. NIST Phases (Containment, Post-Incident)
+11. Technical Appendix
+
+Features:
+- Severity donut chart
+- Timeline visualization
+- Top IPs bar chart
+- User agent category pie chart
+- MITRE ATT&CK technique tagging
+- IOC extraction and highlighting
+
+
+6.2 PARSERS
+------------
+
+Each parser inherits from BaseParser and implements:
+- parse(file_path): Parse entire file, return list of LogRecord
+- parse_line(line): Parse single line (optional)
+
+Supported log formats (30+):
+
+Web Server Parsers:
+- ApacheAccessParser: Common/Combined Log Format
+- NginxAccessParser: Nginx access logs
+- IISParser: IIS W3C Extended Format
+
+Windows Parsers:
+- EVTXParser: Binary Windows Event Logs
+- EVTXXMLParser: Exported XML Event Logs
+- SysmonParser: Sysmon XML format
+
+Linux Parsers:
+- SyslogParser: RFC3164/RFC5424 syslog
+- AuthLogParser: /var/log/auth.log
+- AuditdParser: Linux auditd logs
+- PostfixParser: Postfix mail logs
+
+Network Parsers:
+- CiscoASAParser: Cisco ASA firewall
+- FortinetParser: FortiGate logs
+- PaloAltoParser: PAN-OS logs
+- PfSenseParser: pfSense firewall
+- SquidParser: Squid proxy
+- SuricataEVEParser: Suricata JSON alerts
+- ZeekParser: Zeek TSV format
+
+Cloud Parsers:
+- CloudTrailParser: AWS CloudTrail JSON
+- AzureActivityParser: Azure Activity Log
+- GCPAuditParser: GCP Audit Logs
+
+Other Parsers:
+- SSHParser: SSH authentication logs
+- VPNParser: VPN connection logs
+- EmailParser: SMTP logs
+- DockerParser: Docker container logs
+- K8sParser: Kubernetes logs
+- OktaParser: Okta System Log
+- MySQLParser: MySQL error logs
+- MSSQLParser: MSSQL logs
+
+
+6.3 DETECTION ENGINE
+--------------------
+
+ENGINE (detection/engine.py)
+Purpose: Orchestrate all detection mechanisms
+
+Pipeline Steps:
+1. Build Event Matrix
+2. Run YARA Scanner
+3. Run Sigma Scanner
+4. Run Correlation Engine
+5. Run Pattern Catalogue
+6. Calculate Severity Counts
+7. Determine Overall Risk Rating
+
+Output structure:
+- analysis_id: Unique identifier
+- log_type: Detected format
+- total_events: Event count
+- findings: Detection hits
+- patterns: Behavioral patterns
+- event_matrix: Structured events
+- correlations: Correlated events
+- findings_by_severity: Count by severity
+- overall_risk: Final risk rating
+
+
+YARA_SCANNER (detection/yara_scanner.py)
+Purpose: Pattern-based threat detection
+Features:
+- Load YARA rules from rules/yara/
+- Scan raw log lines for matches
+- Support for string patterns, regex, hex
+- Categories: auth, cloud, network, linux, windows
+
+Rule Examples:
+- mimikatz.yar: Mimikatz password dumping
+- cobalt_strike.yar: Cobalt Strike indicators
+- ransomware.yar: Ransomware patterns
+- brute_force.yar: Brute force attempts
+- dns_tunneling.yar: DNS tunneling
+- reverse_shell.yar: Reverse shell patterns
+
+
+SIGMA_SCANNER (detection/sigma_scanner.py)
+Purpose: Rule-based detection using Sigma format
+Features:
+- YAML-based rule definitions
+- Python-based rule processing
+- Log field mapping
+- Condition evaluation
+
+Rule Examples:
+- win_brute_force.yml: Windows brute force
+- linux_ssh_brute_force.yml: SSH attacks
+- aws_root_login.yml: AWS root logins
+- azure_risky_signin.yml: Risky Azure sign-ins
+
+
+CORRELATOR (detection/correlator.py)
+Purpose: Cross-event pattern detection
+Correlation Types:
+- Brute force detection
+- Port scan detection
+- Beaconing detection
+- Data exfiltration detection
+- Privilege escalation chains
+
+Parameters:
+- Time window: 300 seconds (configurable)
+- Minimum events: 3 (configurable)
+
+
+EVENT_MATRIX (detection/event_matrix.py)
+Purpose: Build structured event database
+Features:
+- Index by IP, username, timestamp
+- Build behavioral profiles
+- Pattern catalogue matching
+
+
+6.4 ANALYTICS MODULES
+---------------------
+
+ORCHESTRATOR (analytics/orchestrator.py)
+Purpose: Run all analytics modules and aggregate results
+Features:
+- Sequential or parallel execution
+- LogRecord conversion
+- Rich terminal output
+- Result aggregation
+
+Modules executed:
+1. BaselineProfiler
+2. FrequencyAnalyzer
+3. BeaconingDetector
+4. TopNReporter
+5. TimelineBuilder
+
+
+BASELINE (analytics/baseline.py)
+Purpose: Detect anomalous behavior vs. learned baseline
+
+Algorithm:
+- Split data: 70% training, 30% test
+- Profile dimensions per log type:
+  * apache/nginx: bytes, status codes, requests/hour/IP
+  * auth_log/ssh: logins/hour/user, failure rates
+  * windows_evtx/sysmon: logons, event diversity
+  * cloudtrail: API calls/hour/user
+  * network logs: session bytes, deny ratios
+- Calculate mean, std_dev, percentiles
+- Flag deviations > 2.5σ (configurable)
+
+Dimensions per log type in _DIM_REGISTRY:
+- bytes_transferred: HTTP response size
+- status_code: HTTP status
+- requests_per_hour_per_ip: Rate limiting
+- ip_failure_rate: Failure ratio
+- logins_per_hour_per_user: Auth rate
+- user_event_diversity: Event variety
+- session_bytes: Data transfer volume
+
+
+FREQUENCY (analytics/frequency.py)
+Purpose: Statistical frequency analysis
+
+Features:
+- Per-field frequency counting
+- Z-score outlier detection
+- High frequency outliers: Bot activity, enumeration
+- Low frequency outliers: Rare access patterns
+
+
+BEACONING (analytics/beaconing.py)
+Purpose: Detect C2 beaconing patterns
+
+Algorithms:
+1. Jitter Score (CV = std/mean):
+   - Low CV (< 0.35) = regular intervals = suspicious
+   
+2. Autocorrelation:
+   - High autocorrelation = periodic pattern
+   - Threshold: ≥ 0.70
+   
+3. FFT Periodicity:
+   - FFT analysis on time bins
+   - Sharp peak = strict periodicity
+   - Threshold: ≥ 0.35 prominence
+
+Required: ≥ 2 methods triggered to flag as beacon
+
+Additional checks:
+- Minimum connections: 8
+- Interval range: 5 seconds to 24 hours
+- Consistent payload size analysis
+
+
+TOPN (analytics/topn.py)
+Purpose: Rank and report top entities
+
+Analysis:
+- Top IPs by request count
+- Top URLs accessed
+- Top users by activity
+- Top user agents
+- Peak time windows (1-hour buckets)
+- Cumulative percentage analysis
+
+Flagging criteria:
+- IPs with > 10% of total traffic
+- URLs never seen before (anomaly)
+- User agents matching scanner patterns
+
+
+TIMELINE (analytics/timeline.py)
+Purpose: Correlate events into attack chains
+
+Features:
+- Multi-source event correlation
+- Attack chain identification
+- Kill chain completeness scoring:
+  * Reconnaissance
+  * Weaponization
+  * Delivery
+  * Exploitation
+  * Installation
+  * Command & Control
+  * Actions on Objectives
+- Pivot point identification
+- Cross-log-source correlation
+
+Output:
+- Attack chains with stages
+- Duration calculation
+- Log sources involved
+
+
+6.5 REPORT BUILDER
+------------------
+
+Features:
+- NIST SP 800-61 Rev.2 alignment
+- Professional HTML styling with dark theme
+- Interactive elements (collapsible sections)
+- Embedded charts (matplotlib)
+- MITRE ATT&CK technique mapping
+- IOC extraction and tagging
+- TLP classification support
+
+Report Sections Detail:
+
+1. Cover Page:
+   - Logo and title
+   - Analysis metadata
+   - Risk rating
+   - TLP classification
+
+2. Executive Summary:
+   - Narrative summary
+   - Severity donut chart
+   - Event timeline
+   - Key IOCs
+   - MITRE techniques
+
+3. Source Intelligence:
+   - Top IPs table with risk scores
+   - User agent categories
+   - IP beaconing patterns
+   - Country distribution
+
+4. User & Authentication:
+   - Username activity
+   - Auth failures by IP/User
+   - Success after failure detection
+   - Account lockouts
+   - Privilege escalation
+
+5. Web/HTTP Analysis:
+   - Status code distribution
+   - Top URLs
+   - HTTP methods
+   - Referrers
+
+6. Network Analysis:
+   - Protocol distribution
+   - Connection patterns
+   - DNS analysis (if available)
+
+7. Timeline:
+   - Event timeline chart
+   - Attack chains
+   - Kill chain stages
+
+8. Detection Findings:
+   - YARA matches
+   - Sigma matches
+   - MITRE ATT&CK mapping
+
+9. NIST Phases:
+   - Detection & Analysis
+   - Containment
+   - Eradication
+   - Recovery
+   - Post-Incident Activity
+
+10. Technical Appendix:
+    - Raw event samples
+    - Configuration details
+    - Rule sets used
+
+================================================================================
+                     7. CONFIGURATION
+================================================================================
+
+config.yaml Structure:
+
+general:
+  - version: Tool version
+  - tool_name: Name for reports
+  - default_analyst: Default analyst name
+  - tlp: Default TLP level
+  - timezone: Timezone for timestamps
+  - max_events_in_memory: Memory limit
+  - log_level: Logging verbosity
+
+output:
+  - default_dir: Report output directory
+  - report_formats: html, json, both
+  - json_pretty: JSON formatting
+  - include_raw_events: Embed raw logs
+  - max_events_in_report: Event cap
+
+severity:
+  - Thresholds: 0-100 scoring
+  - Labels: CRITICAL, HIGH, MEDIUM, LOW, INFO
+  - Colors: Terminal display colors
+
+detection:
+  - yara: enabled, rules_dir, timeout
+  - sigma: enabled, rules_dir, backend
+  - correlation: time_window, min_events
+  - brute_force: threshold, window
+  - port_scan: threshold, window
+  - beaconing: min_requests, stddev_threshold
+  - data_exfil: bytes_threshold
+  - dga: entropy_threshold, min_domain_length
+
+high_risk_countries:
+  - Country codes (RU, CN, KP, IR, etc.)
+
+scanner_user_agents:
+  - 30+ attack tool signatures
+
+suspicious_ports:
+  - High risk: 4444, 5555, 1337, 31337, etc.
+  - Watch: 21, 23, 25, 445, 3306, etc.
+
+web_attack_patterns:
+  - SQL injection patterns
+  - XSS patterns
+  - Path traversal patterns
+  - RCE patterns
+  - XXE patterns
+  - SSRF patterns
+
+log_type_parsers:
+  - Mapping of log types to parser classes
+
+normalized_event_schema:
+  - Required fields: timestamp, log_type, raw
+  - Optional fields: all standard fields
+
+================================================================================
+                     8. USAGE EXAMPLES
+================================================================================
+
+CLI MODE (Non-Interactive):
+
+# Analyze Apache log
+python main.py --path /var/log/apache2/access.log
+
+# Analyze directory recursively
+python main.py --path /var/log/ --recursive
+
+# Analyze Windows Event Log
+python main.py --path /logs/windows_events.evtx --output /reports/
+
+# Full analysis with custom analyst
+python main.py --path /logs/ --analyst "Jane Doe" --tlp RED --format both
+
+# Skip analytics (faster, detection only)
+python main.py --path /var/log/nginx/access.log --no-analytics
+
+# Run specific analytics only
+python main.py --path /var/log/auth.log --no-baseline --no-frequency
+
+# Stats-only mode
+python main.py --path /var/log/apache2/access.log --stats-only
+
+
+INTERACTIVE MODE:
+
+# Launch interactive menu
+python main.py
+
+Menu options:
+- File/Directory selection
+- Log type selection (or auto-detect)
+- Output directory
+- Report format (HTML/JSON)
+- Analyst name
+
+
+COMMAND OPTIONS:
+
+--path, -p           File or directory path
+--recursive, -r      Recurse into subdirectories
+--type, -t           Force log type
+--output, -o        Output directory (default: ./threattrace_reports)
+--format, -f        Report format: html|json|both
+--analyst           Analyst name for report
+--tlp               TLP classification: WHITE|GREEN|AMBER|RED
+--no-analytics      Skip analytics modules
+--stats-only        Analytics only, skip detection
+
+================================================================================
+                     9. DETECTION RULES
+================================================================================
+
+YARA RULES (detection/rules/yara/):
+
+Authentication (auth/):
+- brute_force.yar: Brute force attempts
+- pass_the_hash.yar: Pass-the-hash detection
+- credential_stuffing.yar: Credential stuffing
+
+Cloud (cloud/):
+- aws_enum.yar: AWS enumeration
+- azure_abuse.yar: Azure abuse
+- iam_abuse.yu: IAM privilege abuse
+
+Network (network/):
+- c2_patterns.yar: C2 communication patterns
+- data_exfiltration.yar: Data exfiltration
+- dns_tunneling.yar: DNS tunneling
+- port_scan.yar: Port scanning
+
+Linux (linux/):
+- crypto_miner.yar: Cryptocurrency mining
+- privilege_escalation.yar: Privilege escalation
+- rootkit_strings.yar: Rootkit indicators
+- reverse_shell.yar: Reverse shell
+
+Windows (windows/):
+- cobalt_strike.yar: Cobalt Strike
+- lolbins.yar: Living-off-the-land binaries
+- mimikatz.yar: Credential dumping
+- persistence.yar: Persistence mechanisms
+- powershell_obfuscation.yar: Obfuscated PowerShell
+- ransomware.yar: Ransomware patterns
+
+Web/Apache (apache/):
+- c2_beaconing.yar: Web shell beaconing
+- lfi_rfi.yar: Local/Remote File Inclusion
+- scanner.yar: Web scanners
+- sqli.yar: SQL Injection
+- webshell.yar: Web shells
+- xss.yar: Cross-Site Scripting
+
+
+SIGMA RULES (detection/rules/sigma/):
+
+Authentication (auth/):
+- auth_brute_force.yml
+- auth_credential_stuffing.yml
+- auth_impossible_travel.yml
+
+Windows (windows/):
+- win_brute_force.yml
+- win_dcsync.yml
+- win_kerberoasting.yml
+- win_lsass_dump.yml
+- win_pass_the_hash.yml
+- win_powershell_encoded.yml
+- win_rdp_lateral.yml
+- win_scheduled_task_creation.yml
+- win_service_install.yml
+- win_uac_bypass.yml
+- win_wmi_execution.yml
+
+Linux (linux/):
+- linux_auditd_execve.yml
+- linux_new_cron_job.yml
+- linux_reverse_shell.yml
+- linux_shadow_read.yml
+- linux_ssh_brute_force.yml
+- linux_sudo_bruteforce.yml
+- linux_suid_abuse.yml
+
+Network (network/):
+- net_blocked_and_repeated.yml
+- net_c2_beaconing.yml
+- net_dns_tunneling.yml
+- net_large_outbound.yml
+- net_port_scan.yml
+
+Cloud (cloud/):
+- aws_iam_enum.yml
+- aws_root_login.yml
+- aws_s3_exfil.yml
+- azure_risky_signin.yml
+- gcp_service_account_abuse.yml
+
+Web/Apache (apache/):
+- web_brute_force.yml
+- web_lfi.yml
+- web_rfi.yml
+- web_scanner_ua.yml
+- web_sqli.yml
+- web_webshell_access.yml
+- web_xss.yml
+
+================================================================================
+                     10. OUTPUT FORMATS
+================================================================================
+
+JSON OUTPUT:
+{
+  "analysis_id": "TT-ANA-XXXXXXXX",
+  "log_type": "apache",
+  "total_events": 10000,
+  "findings": [
+    {
+      "finding_id": "TT-F-001",
+      "rule_name": "web_scanner_ua",
+      "rule_type": "YARA",
+      "severity": "HIGH",
+      "confidence": "HIGH",
+      "description": "Scanner User-Agent detected",
+      "mitre_technique": "T1595",
+      "matched_line": "...",
+      "timestamp": "2026-03-29T10:00:00"
+    }
+  ],
+  "findings_by_severity": {
+    "CRITICAL": 0,
+    "HIGH": 5,
+    "MEDIUM": 12,
+    "LOW": 30,
+    "INFO": 50
+  },
+  "overall_risk": "HIGH",
+  "stat_results": [...],
+  "correlations": {...}
+}
+
+HTML OUTPUT:
+- Professional dark-themed report
+- Interactive tables
+- Embedded charts
+- Collapsible sections
+- Severity badges
+- MITRE ATT&CK tags
+- IOC highlighting
+
+================================================================================
+                           END OF DOCUMENTATION
+================================================================================
+
+For more information, see the project configuration in config.yaml and
+review the individual module source files.
+
+This documentation is classified as TLP:AMBER - Limited sharing on
+need-to-know basis within the organization.
+================================================================================

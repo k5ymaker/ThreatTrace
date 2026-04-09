@@ -1,0 +1,57 @@
+title: Azure AD Risky Sign-in Detected
+id: c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f
+status: stable
+description: Detects Azure AD sign-in events flagged as risky (impossible travel, unfamiliar location, etc.).
+tags:
+    - attack.initial_access
+    - attack.t1078.004
+logsource:
+    product: azure
+    service: signin
+detection:
+    selection:
+        status|contains: "failure"
+    condition: selection
+falsepositives:
+    - VPN users, travelers
+level: medium
+---
+title: Azure Subscription Role Assignment Change
+id: d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a
+status: stable
+description: Detects changes to Azure subscription role assignments that may indicate privilege escalation.
+tags:
+    - attack.privilege_escalation
+    - attack.t1098
+logsource:
+    product: azure
+    service: activity
+detection:
+    selection:
+        operation_name|contains:
+            - "roleAssignments/write"
+            - "roleDefinitions/write"
+    condition: selection
+falsepositives:
+    - Legitimate RBAC management
+level: high
+---
+title: Azure Key Vault Secrets Accessed
+id: e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b
+status: stable
+description: Detects access to Azure Key Vault secrets, which may indicate credential theft.
+tags:
+    - attack.credential_access
+    - attack.t1552.001
+logsource:
+    product: azure
+    service: activity
+detection:
+    selection:
+        operation_name|contains:
+            - "vaults/secrets/read"
+            - "secrets/getSecret"
+    condition: selection
+falsepositives:
+    - Legitimate application secret access
+level: medium

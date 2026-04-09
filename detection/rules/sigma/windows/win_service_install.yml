@@ -1,0 +1,31 @@
+title: Suspicious Service Installation
+id: a3b4c5d6-e7f8-9012-abcd-123456789012
+status: stable
+description: Detects installation of Windows services with suspicious executable paths pointing to temporary directories, using command interpreters, or referencing remote URLs indicative of malware persistence
+references:
+    - https://attack.mitre.org/techniques/T1543/003/
+    - https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-7045
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1543.003
+    - attack.persistence
+logsource:
+    product: windows
+    service: system
+detection:
+    selection:
+        EventID: 7045
+        ImagePath|contains:
+            - '\Temp\'
+            - '\AppData\'
+            - '%COMSPEC%'
+            - 'powershell'
+            - 'cmd /c'
+            - 'http://'
+            - 'https://'
+    condition: selection
+falsepositives:
+    - Legitimate software installers using temporary paths during installation
+    - Some enterprise management tools installing services via PowerShell
+level: high

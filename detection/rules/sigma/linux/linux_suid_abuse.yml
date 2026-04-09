@@ -1,0 +1,43 @@
+title: SUID Binary Abuse
+id: e3f4a5b6-c7d8-9012-efab-123456789012
+status: stable
+description: Detects abuse of SUID binaries for privilege escalation by monitoring execution of common SUID-abusable binaries with arguments that spawn shell sessions or execute arbitrary commands
+references:
+    - https://attack.mitre.org/techniques/T1548/001/
+    - https://gtfobins.github.io/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1548.001
+    - attack.privilege_escalation
+logsource:
+    product: linux
+    service: auditd
+detection:
+    selection_binary:
+        type:
+            - EXECVE
+            - SYSCALL
+        exe|contains:
+            - '/usr/bin/find'
+            - '/bin/bash'
+            - '/usr/bin/python'
+            - '/usr/bin/perl'
+            - '/usr/bin/vim'
+            - '/usr/bin/less'
+            - '/usr/bin/nmap'
+            - '/usr/bin/awk'
+    selection_shell_spawn:
+        type: EXECVE
+        a0|contains:
+            - '-exec /bin/sh'
+            - '-exec /bin/bash'
+        a1|contains:
+            - '-exec /bin/sh'
+            - '-exec /bin/bash'
+    condition: selection_binary or selection_shell_spawn
+falsepositives:
+    - Legitimate administrative use of these utilities
+    - Development environments running scripts with these interpreters
+    - System administration tasks using find with -exec
+level: high

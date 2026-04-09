@@ -1,0 +1,32 @@
+title: Print Spooler DLL Write Privilege Escalation
+id: g9h8i7j6-7890-1234-abcd-456789012345
+status: stable
+description: >
+  Detects SpoolFool, PrintNightmare, and related spooler exploits where
+  spoolsv.exe writes a DLL to a privileged location or spawns unexpected child processes.
+references:
+  - https://github.com/sbousseaden/EVTX-ATTACK-SAMPLES
+author: ThreatTrace
+date: 2026/01/01
+tags:
+  - attack.privilege_escalation
+  - attack.t1574.010
+  - attack.t1068
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  dll_write:
+    EventID: 11
+    Image|endswith: '\spoolsv.exe'
+    TargetFilename|endswith: '.dll'
+  unexpected_child:
+    EventID: 1
+    ParentImage|endswith: '\spoolsv.exe'
+    Image|not|endswith:
+      - '\splwow64.exe'
+      - '\PrintIsolationHost.exe'
+  condition: dll_write or unexpected_child
+falsepositives:
+  - Printer driver installations by IT staff
+level: critical

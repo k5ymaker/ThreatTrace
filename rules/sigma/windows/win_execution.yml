@@ -1,0 +1,140 @@
+title: Suspicious PowerShell Encoded Command
+id: b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e
+status: stable
+description: Detects execution of PowerShell with encoded command flag, commonly used to obfuscate malicious scripts.
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.execution
+    - attack.defense_evasion
+    - attack.t1059.001
+    - attack.t1027
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains:
+            - "-EncodedCommand"
+            - "-EnC "
+            - " -eNc "
+            - " -ec "
+    condition: selection
+falsepositives:
+    - Legitimate software using encoded PowerShell
+level: high
+---
+title: PowerShell Download Cradle
+id: c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f
+status: stable
+description: Detects PowerShell commands that download and execute remote content.
+tags:
+    - attack.execution
+    - attack.t1059.001
+    - attack.initial_access
+    - attack.t1566
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine|contains:
+            - "DownloadString"
+            - "DownloadFile"
+            - "DownloadData"
+            - "WebClient"
+            - "Invoke-Expression"
+            - "iex("
+    condition: selection
+falsepositives:
+    - Legitimate package managers and installers
+level: high
+---
+title: Suspicious Scheduled Task Creation (schtasks)
+id: d4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a
+status: stable
+description: Detects scheduled task creation that may indicate persistence mechanism installation.
+tags:
+    - attack.persistence
+    - attack.t1053.005
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: "schtasks.exe"
+        CommandLine|contains: "/create"
+    condition: selection
+falsepositives:
+    - Legitimate scheduled task creation by software installers
+level: medium
+---
+title: WMIC Remote Process Creation
+id: e5f6a7b8-c9d0-4e1f-2a3b-4c5d6e7f8a9b
+status: stable
+description: Detects WMIC remote process creation, a common lateral movement technique.
+tags:
+    - attack.lateral_movement
+    - attack.t1047
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: "wmic.exe"
+        CommandLine|contains:
+            - "/node:"
+            - "process call create"
+    condition: selection
+falsepositives:
+    - Legitimate remote admin
+level: high
+---
+title: Regsvr32 Remote Script Execution (Squiblydoo)
+id: f6a7b8c9-d0e1-4f2a-3b4c-5d6e7f8a9b0c
+status: stable
+description: Detects Regsvr32 being used to execute remotely hosted scripts (Squiblydoo bypass).
+tags:
+    - attack.defense_evasion
+    - attack.execution
+    - attack.t1218.010
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: "regsvr32.exe"
+        CommandLine|contains:
+            - "/i:http"
+            - "/i:ftp"
+            - "scrobj.dll"
+    condition: selection
+falsepositives:
+    - None expected in production environments
+level: critical
+---
+title: Mshta Remote Execution
+id: a7b8c9d0-e1f2-4a3b-4c5d-6e7f8a9b0c1d
+status: stable
+description: Detects mshta.exe executing remote HTA content.
+tags:
+    - attack.defense_evasion
+    - attack.execution
+    - attack.t1218.005
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        Image|endswith: "mshta.exe"
+        CommandLine|contains:
+            - "http://"
+            - "https://"
+            - "javascript:"
+            - "vbscript:"
+    condition: selection
+falsepositives:
+    - None expected
+level: high

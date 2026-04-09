@@ -1,0 +1,49 @@
+title: Potato Family Attack - Named Pipe Token Impersonation
+id: b4c3d2e1-2345-6789-bcde-f01234567890
+status: stable
+description: >
+  Detects JuicyPotato, RottenPotato, RoguePotato, EfsPotato, and similar
+  token impersonation attacks via named pipe creation from low-privilege processes.
+references:
+  - https://github.com/sbousseaden/EVTX-ATTACK-SAMPLES
+author: ThreatTrace
+date: 2026/01/01
+tags:
+  - attack.privilege_escalation
+  - attack.t1134.001
+logsource:
+  product: windows
+  service: sysmon
+detection:
+  pipe_create:
+    EventID:
+      - 17
+      - 18
+    PipeName|contains:
+      - 'RoguePotato'
+      - '\pipe\srvsvc'
+      - '\pipe\efslpc'
+      - '\pipe\lsarpc'
+      - '\pipe\spoolss'
+      - '\pipe\epmapper'
+  suspicious_parent:
+    EventID: 1
+    ParentImage|endswith:
+      - '\w3wp.exe'
+      - '\sqlservr.exe'
+      - '\wmiprvse.exe'
+      - '\msdtc.exe'
+    User|contains: 'NETWORK SERVICE'
+  remote_thread:
+    EventID: 8
+    SourceImage|endswith:
+      - '\w3wp.exe'
+      - '\wmiprvse.exe'
+    TargetImage|endswith:
+      - '\winlogon.exe'
+      - '\lsass.exe'
+      - '\services.exe'
+  condition: pipe_create or (suspicious_parent and remote_thread)
+falsepositives:
+  - Legitimate IPC pipe communication in managed environments
+level: critical

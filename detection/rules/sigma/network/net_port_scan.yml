@@ -1,0 +1,26 @@
+title: Port Scan Detected
+id: c7d8e9f0-a1b2-3456-cdef-567890123456
+status: stable
+description: Detects port scanning activity by identifying a single source IP making connection attempts to more than 20 distinct destination ports that are being blocked by the firewall within a 5 minute window
+references:
+    - https://attack.mitre.org/techniques/T1046/
+    - https://nmap.org/book/man-port-scanning-basics.html
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1046
+    - attack.discovery
+logsource:
+    category: firewall
+detection:
+    selection:
+        action:
+            - 'deny'
+            - 'drop'
+    timeframe: 5m
+    condition: selection | count(dest_port) by source_ip > 20
+falsepositives:
+    - Network vulnerability scanners running authorized scans
+    - Misconfigured applications connecting to multiple ports
+    - Asset inventory tools
+level: medium

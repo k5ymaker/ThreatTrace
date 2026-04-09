@@ -1,0 +1,32 @@
+title: Suspicious Command Execution via auditd
+id: b6c7d8e9-f0a1-2345-bcde-456789012345
+status: stable
+description: Detects suspicious command execution patterns on Linux systems captured via auditd EXECVE events, including downloading and executing scripts, base64 decoding, and staging payloads in temporary directories
+references:
+    - https://attack.mitre.org/techniques/T1059/004/
+    - https://attack.mitre.org/techniques/T1105/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1059.004
+    - attack.execution
+logsource:
+    product: linux
+    service: auditd
+detection:
+    selection:
+        type: EXECVE
+        command_line|contains:
+            - 'wget http'
+            - 'curl http'
+            - 'curl -s -o'
+            - '| bash'
+            - 'base64 -d |'
+            - 'python -c import'
+            - 'chmod +x /tmp'
+    condition: selection
+falsepositives:
+    - Legitimate software installation scripts using wget or curl
+    - DevOps automation pipelines that download and execute scripts
+    - System administrators using base64 for data encoding
+level: high

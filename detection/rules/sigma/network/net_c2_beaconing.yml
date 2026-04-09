@@ -1,0 +1,27 @@
+title: C2 Beaconing Pattern Detected
+id: a1b2c3d4-e5f6-7890-abcd-901234567890
+status: stable
+description: Detects command-and-control beaconing behavior characterized by regular interval HTTP/HTTPS requests from the same source IP to the same destination, which is typical of malware maintaining persistent C2 communication
+references:
+    - https://attack.mitre.org/techniques/T1071/001/
+    - https://www.sans.org/reading-room/whitepapers/detection/detecting-security-incidents-web-server-access-logs-34828
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1071.001
+    - attack.command_and_control
+logsource:
+    category: proxy
+detection:
+    selection:
+        http_method:
+            - 'GET'
+            - 'POST'
+    timeframe: 1h
+    condition: selection | count() by c-ip, cs-host > 20
+falsepositives:
+    - Legitimate applications with regular polling behavior
+    - Browser auto-update checks
+    - Telemetry and analytics clients
+    - Monitoring agents sending regular heartbeats
+level: high

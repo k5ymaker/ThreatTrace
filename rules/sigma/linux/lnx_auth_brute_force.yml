@@ -1,0 +1,102 @@
+title: SSH Brute Force Attack
+id: a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d
+status: stable
+description: Detects multiple SSH authentication failures indicating a brute force attack.
+references:
+    - https://attack.mitre.org/techniques/T1110/001/
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.credential_access
+    - attack.t1110.001
+logsource:
+    product: linux
+    service: auth
+detection:
+    selection:
+        message|contains:
+            - "Failed password for"
+            - "Failed publickey for"
+            - "Invalid user"
+        program: "sshd"
+    condition: selection
+falsepositives:
+    - Legitimate failed login attempts
+level: medium
+---
+title: SSH Login from Invalid User
+id: b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e
+status: stable
+description: Detects SSH login attempts for users that do not exist on the system.
+tags:
+    - attack.credential_access
+    - attack.t1110.003
+logsource:
+    product: linux
+    service: auth
+detection:
+    selection:
+        message|contains: "Invalid user"
+        program: "sshd"
+    condition: selection
+falsepositives:
+    - Mistyped usernames
+level: medium
+---
+title: Successful SSH Login from Unusual Source
+id: c5d6e7f8-a9b0-4c1d-2e3f-4a5b6c7d8e9f
+status: stable
+description: Detects successful SSH authentication events for monitoring.
+tags:
+    - attack.initial_access
+    - attack.t1078
+logsource:
+    product: linux
+    service: auth
+detection:
+    selection:
+        message|contains: "Accepted"
+        program: "sshd"
+    condition: selection
+falsepositives:
+    - All legitimate SSH logins
+level: info
+---
+title: Sudo Privilege Escalation
+id: d6e7f8a9-b0c1-4d2e-3f4a-5b6c7d8e9f0a
+status: stable
+description: Detects sudo usage that may indicate privilege escalation.
+tags:
+    - attack.privilege_escalation
+    - attack.t1548.003
+logsource:
+    product: linux
+    service: auth
+detection:
+    selection:
+        message|contains: "sudo:"
+        event_category: "sudo"
+    condition: selection
+falsepositives:
+    - Legitimate administrative sudo usage
+level: low
+---
+title: Sudo Failure — Incorrect Password
+id: e7f8a9b0-c1d2-4e3f-4a5b-6c7d8e9f0a1b
+status: stable
+description: Detects sudo authentication failures that may indicate privilege escalation attempts.
+tags:
+    - attack.privilege_escalation
+    - attack.t1548.003
+logsource:
+    product: linux
+    service: auth
+detection:
+    selection:
+        message|contains:
+            - "sudo:"
+            - "authentication failure"
+    condition: selection
+falsepositives:
+    - Legitimate password mistyping
+level: medium

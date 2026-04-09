@@ -1,0 +1,32 @@
+title: Suspicious Scheduled Task Creation
+id: f2a3b4c5-d6e7-8901-fabc-012345678901
+status: stable
+description: Detects creation of scheduled tasks that reference suspicious directories or contain command-line interpreters commonly used for persistence by malware and attackers
+references:
+    - https://attack.mitre.org/techniques/T1053/005/
+    - https://docs.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4698
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1053.005
+    - attack.persistence
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4698
+        TaskContent|contains:
+            - '\Temp\'
+            - '\AppData\'
+            - '\ProgramData\'
+            - 'powershell'
+            - 'cmd /c'
+            - 'wscript'
+            - 'cscript'
+    condition: selection
+falsepositives:
+    - Legitimate software installers that create scheduled tasks in AppData
+    - Administrative scripts using PowerShell via scheduled tasks
+    - Some antivirus products scheduling updates
+level: medium

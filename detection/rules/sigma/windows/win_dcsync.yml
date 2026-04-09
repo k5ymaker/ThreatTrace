@@ -1,0 +1,31 @@
+title: DCSync Attack via Directory Replication
+id: d0e1f2a3-b4c5-6789-defa-890123456789
+status: stable
+description: Detects DCSync attacks where an attacker abuses Active Directory replication privileges to extract password hashes by matching directory replication GUIDs in access audit events
+references:
+    - https://attack.mitre.org/techniques/T1003/006/
+    - https://adsecurity.org/?p=1729
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1003.006
+    - attack.credential_access
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4662
+        AccessMask|contains: '0x100'
+        Properties|contains:
+            - '1131f6aa'
+            - '1131f6ad'
+            - '89e95b76'
+    filter_legitimate:
+        SubjectUserName|endswith: '$'
+    condition: selection and not filter_legitimate
+falsepositives:
+    - Legitimate domain controller replication between DCs
+    - Azure AD Connect synchronization
+    - Authorized directory replication tools
+level: critical

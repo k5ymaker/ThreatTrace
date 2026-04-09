@@ -1,0 +1,32 @@
+title: Reverse Shell Execution Detected
+id: a5b6c7d8-e9f0-1234-abcd-345678901234
+status: stable
+description: Detects reverse shell execution attempts on Linux systems by identifying execution of commands or scripts that establish outbound shell connections using common reverse shell techniques
+references:
+    - https://attack.mitre.org/techniques/T1059/004/
+    - https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet
+author: ThreatTrace
+date: 2024/01/01
+tags:
+    - attack.t1059.004
+    - attack.execution
+logsource:
+    product: linux
+    service: auditd
+detection:
+    selection:
+        type: EXECVE
+        command_line|contains:
+            - '/dev/tcp/'
+            - 'nc -e'
+            - 'bash -i'
+            - '/bin/bash -i'
+            - 'python -c'
+            - 'perl -e'
+            - 'socat TCP'
+    condition: selection
+falsepositives:
+    - Legitimate network diagnostic scripts using /dev/tcp
+    - Development environments testing connectivity
+    - Authorized red team engagements
+level: critical

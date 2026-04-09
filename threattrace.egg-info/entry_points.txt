@@ -1,0 +1,3 @@
+[console_scripts]
+threattrace = threattrace.cli:main
+threattrace-shell = threattrace.shell:main
